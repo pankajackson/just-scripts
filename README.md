@@ -1,6 +1,34 @@
-# Windows remote access helpers
+# System administration scripts
 
-Small scripts to enable Microsoft Remote Desktop (RDP) or WinRM PowerShell remoting on Windows 10/11.
+This repository contains Windows remote access helpers and a Proxmox VE GPU passthrough helper. Review each script before running it; some commands change system configuration and require administrative privileges.
+
+## Proxmox VE GPU passthrough
+
+`proxmox-gpu-passthrough.sh` provides the `gpupt` command for Intel and AMD Proxmox hosts. It lists GPUs and IOMMU groups, checks host and VM passthrough setup, configures VFIO and VM settings, creates rollback points, and produces a diagnostic report.
+
+Run it as root on the Proxmox node. For example, copy the script to the node, make it executable, and invoke it directly (or install it as `/usr/local/sbin/gpupt`):
+
+```sh
+chmod +x proxmox-gpu-passthrough.sh
+./proxmox-gpu-passthrough.sh --help
+```
+
+Typical workflow, using the actual GPU PCI address and VM ID for your system:
+
+```sh
+./proxmox-gpu-passthrough.sh list
+./proxmox-gpu-passthrough.sh check --gpu 01:00
+./proxmox-gpu-passthrough.sh configure node --gpu 01:00
+# Reboot the Proxmox node after host configuration.
+./proxmox-gpu-passthrough.sh configure vm 101 --gpu 01:00
+# Stop and start the VM for its updated configuration to take effect.
+qm stop 101 && qm start 101
+```
+
+The script detects the host CPU and bootloader, and remembers the selected GPU. Use `--dry-run` to preview changes. Configuration writes tool-owned files, updates initramfs/bootloader configuration, or edits the VM config; it creates rollback points first. Inspect them with `backups`, and undo with `rollback last` or a specific rollback ID. Host changes require a reboot to take full effect. Use `--help` for options such as EFI storage, Secure Boot, and `--x-vga`. `--yes` approves ordinary prompts; risky boot-framebuffer and reboot prompts still require confirmation. The `--unsafe-interrupts` option weakens interrupt isolation and should only be used if hardware does not support interrupt remapping.
+
+## Windows remote access helpers
+
 Run the relevant `.bat` file from an **Administrator** Command Prompt on the Windows machine.
 
 ## Remote Desktop
